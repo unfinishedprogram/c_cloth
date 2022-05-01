@@ -11,11 +11,11 @@ static int TICKS_PER_FRAME = 12;
 
 int main (void) {
   // Initalizing rendering context
-  sfVideoMode mode = {150, 150, 32};
+  sfVideoMode mode = {256, 256, 32};
   sfRenderWindow* window;
   window = sfRenderWindow_create(mode, "Window", sfResize | sfClose, NULL);
 
-  Cloth* cloth = Cloth_create(100, 100);
+  Cloth* cloth = Cloth_create(200, 200);
 
   Cloth_populate(cloth);
 
@@ -37,9 +37,6 @@ int main (void) {
     while(sfRenderWindow_pollEvent(window, &event)) {
       if (event.type == sfEvtClosed) sfRenderWindow_close(window);
     }
-
-
-
 
     int i = TICKS_PER_FRAME;
     

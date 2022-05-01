@@ -6,7 +6,7 @@
 #include "util/vector2.h"
 #include <pthread.h>
 
-static int THREAD_COUNT = 8;
+static int THREAD_COUNT = 12;
 
 static float CONSTRAINT_LENGTH = 1;
 static float DRAG = 0.999;
@@ -127,18 +127,15 @@ void Cloth_fillVertexArray(Cloth *self, sfVertexArray *varr) {
 static void ClothVert_applyConstraint(ClothVert *self, ClothVert *other) {
   float dx = self->position->x - other->position->x;
   float dy = self->position->y - other->position->y;
+
   float dist = dy*dy + dx*dx;
-  float multDiv = 1/dist;
 
-  float mult = fmax(dist - CONSTRAINT_LENGTH, 0) * 0.1 * multDiv;
+  float multDiv = 0.1/dist;
 
-  dx *= mult;
-  dy *= mult;
+  float mult = fmax(dist - CONSTRAINT_LENGTH, 0) * multDiv;
 
-  float sqd = sqrt(dist);
-
-  self->velocity->x -= dx;
-  self->velocity->y -= dy;
+  self->velocity->x -= dx * mult;
+  self->velocity->y -= dy * mult;
 
   return;
 }
@@ -171,10 +168,9 @@ void *Cloth_stepMoveSegment(void *args) {
   Cloth *self = params->self;
 
   for(int i = params->index_start; i < params->index_end; i++) {
-    if(!self->verts[i]->pinned){
-      self->verts[i]->position->x += self->verts[i]->velocity->x * MULTIPLIER;
-      self->verts[i]->position->y += self->verts[i]->velocity->y * MULTIPLIER;
-    }
+    int pinned = self->verts[i]->pinned;
+    self->verts[i]->position->x += self->verts[i]->velocity->x * MULTIPLIER * !pinned;
+    self->verts[i]->position->y += self->verts[i]->velocity->y * MULTIPLIER * !pinned;
   } 
 }
 
