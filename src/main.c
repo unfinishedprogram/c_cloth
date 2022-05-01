@@ -7,8 +7,9 @@
 
 #include "cloth.h"
 
-int main (void) {
+static int TICKS_PER_FRAME = 12;
 
+int main (void) {
   // Initalizing rendering context
   sfVideoMode mode = {150, 150, 32};
   sfRenderWindow* window;
@@ -27,11 +28,7 @@ int main (void) {
 
 
   while (sfRenderWindow_isOpen(window)){
-    long delta = sfClock_getElapsedTime(clock).microseconds;
-    
-    sfClock_restart(clock);
 
-    printf("fps:%0.2f\n", 1000/(delta/1000.0));
 
     // Process events
     sfEvent event;
@@ -41,22 +38,37 @@ int main (void) {
       if (event.type == sfEvtClosed) sfRenderWindow_close(window);
     }
 
-    // Clear and show keep the window open
-    sfRenderWindow_clear(window, sfBlack);
+
+
+
+    int i = TICKS_PER_FRAME;
     
-    int i = 4;
-    
+    sfClock_restart(clock);
+
     while(i--){
       Cloth_stepConstrain(cloth);
       Cloth_stepMove(cloth);
     }
+
+    long delta = sfClock_getElapsedTime(clock).microseconds;
+
+    sfClock_restart(clock);
+
+    float tps = TICKS_PER_FRAME * 1000/(delta/1000.0);
+
+
+    // Clear and show keep the window open
+    sfRenderWindow_clear(window, sfBlack);
     
     sfVertexArray_clear(varr);
     Cloth_fillVertexArray(cloth, varr);
-
     sfRenderWindow_drawVertexArray(window, varr, NULL);
-
     sfRenderWindow_display(window);
+
+    delta = sfClock_getElapsedTime(clock).microseconds;
+
+    printf("fps:%0.2f\ntps:%0.2f\n", 1000/(delta/1000.0), tps);
+
   }
 
   // Clean up
