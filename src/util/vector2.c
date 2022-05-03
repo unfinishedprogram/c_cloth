@@ -37,9 +37,9 @@ void Vector2f_print(Vector2f *self) {
   printf("(x:%.2f, y:%.2f)\n", self -> x, self -> y);
 }
 
-void Vector2f_multiplyScalor(Vector2f *self, float scalor) {
-  self->x *= scalor;
-  self->y *= scalor;
+void Vector2f_multiplyScalar(Vector2f *self, float scalar) {
+  self->x *= scalar;
+  self->y *= scalar;
 }
 
 float Vector2f_distSq(Vector2f *a, Vector2f *b) {

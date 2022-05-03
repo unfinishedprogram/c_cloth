@@ -20,6 +20,6 @@ void Vector2f_print(Vector2f *self);
 
 float Vector2f_distSq(Vector2f *a, Vector2f *b);
 
-void Vector2f_multiplyScalor(Vector2f *self, float scalor);
+void Vector2f_multiplyScalar(Vector2f *self, float scalar);
 
 #endif

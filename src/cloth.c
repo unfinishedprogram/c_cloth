@@ -6,7 +6,7 @@
 #include "util/vector2.h"
 #include <pthread.h>
 
-static int THREAD_COUNT = 12;
+static int THREAD_COUNT = 8;
 
 static float CONSTRAINT_LENGTH = 1;
 static float DRAG = 0.999;
@@ -20,7 +20,7 @@ typedef struct {
   Cloth *self;
   int index_start;
   int index_end; 
-} ClothSegmentThreadPerams;
+} ClothSegmentThreadParams;
 
 
 ClothVert *ClothVert_create(int x, int y, int pinned) {
@@ -29,43 +29,18 @@ ClothVert *ClothVert_create(int x, int y, int pinned) {
   vert->pinned = pinned;
   vert->position = Vector2f_create(x, y);
   vert->velocity = Vector2f_create(0, 0);
+
   return vert;
 }
 
 sfVertex ClothVert_toSfVert(ClothVert *self) {
   Vector2f vp = *(self->position);
 
-  sfVector2f position = {vp.x, vp.y};
+  sfVector2f position = {vp.x * 6, vp.y * 6};
 
   sfVertex vert = { position, sfWhite };
   
   return vert;
-}
-
-void Cloth_printVerts(Cloth *self) {
-  return;
-  for(int i = 0; i < self -> vert_count; i++) {
-    // printf("Arr Addr:%x\n", self -> verts);
-    ClothVert_print(self -> verts[i]);
-  }
-  for(int i = 0; i < self -> vert_count; i++) {
-    printf("Vaddrs:%x\n", self -> verts[i]);
-  }
-}
-
-void ClothVert_print(ClothVert *self) {
-  // printf("Position:\n  ");
-  // Vector2f_print(self -> position);
-  // printf("Velocity:\n  ");
-  // Vector2f_print(self -> velocity);
-  // printf(
-  //   "Connections for %x :\n\t%x\n\t%x\n\t%x\n\t%x\n", 
-  //   self,
-  //   self -> connections[0], 
-  //   self -> connections[1], 
-  //   self -> connections[2], 
-  //   self -> connections[3]
-  //   );
 }
 
 Cloth *Cloth_create(int width, int height) {
@@ -127,22 +102,25 @@ void Cloth_fillVertexArray(Cloth *self, sfVertexArray *varr) {
 static void ClothVert_applyConstraint(ClothVert *self, ClothVert *other) {
   float dx = self->position->x - other->position->x;
   float dy = self->position->y - other->position->y;
-
   float dist = dy*dy + dx*dx;
+  float multDiv = 1/dist;
 
-  float multDiv = 0.1/dist;
+  float mult = fmax(dist - CONSTRAINT_LENGTH, 0) * 0.1 * multDiv;
 
-  float mult = fmax(dist - CONSTRAINT_LENGTH, 0) * multDiv;
+  dx *= mult;
+  dy *= mult;
 
-  self->velocity->x -= dx * mult;
-  self->velocity->y -= dy * mult;
+  float sqd = sqrt(dist);
+
+  self->velocity->x -= dx;
+  self->velocity->y -= dy;
 
   return;
 }
 
 // Mutates velocity only
 void *Cloth_stepConstrainSegment(void *args) {
-  ClothSegmentThreadPerams *params = args;
+  ClothSegmentThreadParams *params = args;
 
   Cloth *self = params->self;
 
@@ -158,24 +136,25 @@ void *Cloth_stepConstrainSegment(void *args) {
     }
 
     // Applying drag
-    Vector2f_multiplyScalor(self->verts[i]->velocity, DRAG);
+    Vector2f_multiplyScalar(self->verts[i]->velocity, DRAG);
   }
 }
 
 // Mutates position only
 void *Cloth_stepMoveSegment(void *args) { 
-  ClothSegmentThreadPerams *params = args;
+  ClothSegmentThreadParams *params = args;
   Cloth *self = params->self;
 
   for(int i = params->index_start; i < params->index_end; i++) {
-    int pinned = self->verts[i]->pinned;
-    self->verts[i]->position->x += self->verts[i]->velocity->x * MULTIPLIER * !pinned;
-    self->verts[i]->position->y += self->verts[i]->velocity->y * MULTIPLIER * !pinned;
+    if(!self->verts[i]->pinned){
+      self->verts[i]->position->x += self->verts[i]->velocity->x * MULTIPLIER;
+      self->verts[i]->position->y += self->verts[i]->velocity->y * MULTIPLIER;
+    }
   } 
 }
 
 void Cloth_stepConstrain(Cloth *self) {
-  ClothSegmentThreadPerams args_arr[THREAD_COUNT];
+  ClothSegmentThreadParams args_arr[THREAD_COUNT];
 
   pthread_t threads[THREAD_COUNT];
 
@@ -199,7 +178,7 @@ void Cloth_stepConstrain(Cloth *self) {
 }
 
 void Cloth_stepMove(Cloth *self) { 
-  ClothSegmentThreadPerams args_arr[THREAD_COUNT];
+  ClothSegmentThreadParams args_arr[THREAD_COUNT];
 
   pthread_t threads[THREAD_COUNT];
 
